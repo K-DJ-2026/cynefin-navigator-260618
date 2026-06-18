@@ -1,4 +1,4 @@
-export const workflowSteps = [
+const workflowStepDefinitions = [
   {
     key: "situation",
     label: "상황",
@@ -37,11 +37,17 @@ export const workflowSteps = [
   {
     key: "review",
     label: "검토",
-    href: null
+    href: "review"
   }
 ] as const;
 
-export type WorkflowStepKey = (typeof workflowSteps)[number]["key"];
+export type WorkflowStepKey = (typeof workflowStepDefinitions)[number]["key"];
+
+export const workflowSteps: ReadonlyArray<{
+  key: WorkflowStepKey;
+  label: string;
+  href: string | null;
+}> = workflowStepDefinitions;
 
 export type WorkflowState = {
   id: string;
@@ -66,6 +72,10 @@ export type WorkflowState = {
   alignmentNotes: string | null;
   decisionOwner: string | null;
   decisionDate: string | null;
+  reviewNotes: string | null;
+  reviewDecision: string | null;
+  reviewedBy: string | null;
+  reviewDate: string | null;
 };
 
 export type ProjectWithWorkflow = {

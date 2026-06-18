@@ -40,6 +40,10 @@ model WorkflowState {
   alignmentNotes     String?
   decisionOwner      String?
   decisionDate       String?
+  reviewNotes        String?
+  reviewDecision     String?
+  reviewedBy         String?
+  reviewDate         String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)

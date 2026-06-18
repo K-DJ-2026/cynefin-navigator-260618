@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { ProjectWithWorkflow, WorkflowState, workflowSteps } from "@/lib/workflow";
 
-type AcceptanceFindingWorkspaceProps = {
+type ReviewWorkspaceProps = {
   projectId: string;
 };
 
@@ -48,21 +48,19 @@ function parseActionItems(rawItems: string | null | undefined) {
   }
 }
 
-export default function AcceptanceFindingWorkspace({ projectId }: AcceptanceFindingWorkspaceProps) {
+export default function ReviewWorkspace({ projectId }: ReviewWorkspaceProps) {
   const [project, setProject] = useState<ProjectWithWorkflow | null>(null);
   const [workflowState, setWorkflowState] = useState<WorkflowState | null>(null);
-  const [acceptanceFindings, setAcceptanceFindings] = useState("");
-  const [alignmentNotes, setAlignmentNotes] = useState("");
-  const [acceptanceDecision, setAcceptanceDecision] = useState("pending");
-  const [acceptancePriority, setAcceptancePriority] = useState("medium");
-  const [decisionOwner, setDecisionOwner] = useState("");
-  const [decisionDate, setDecisionDate] = useState("");
+  const [reviewDecision, setReviewDecision] = useState("pending");
+  const [reviewedBy, setReviewedBy] = useState("");
+  const [reviewDate, setReviewDate] = useState("");
+  const [reviewNotes, setReviewNotes] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
 
   useEffect(() => {
-    async function loadAcceptanceFinding() {
+    async function loadReview() {
       const [projectResponse, workflowResponse] = await Promise.all([
         fetch(`/api/projects/${projectId}`),
         fetch(`/api/projects/${projectId}/workflow`)
@@ -78,23 +76,21 @@ export default function AcceptanceFindingWorkspace({ projectId }: AcceptanceFind
 
       setProject(projectData?.project ?? null);
       setWorkflowState(loadedState);
-      setAcceptanceFindings(loadedState?.acceptanceFindings ?? "");
-      setAlignmentNotes(loadedState?.alignmentNotes ?? "");
-      setAcceptanceDecision(loadedState?.acceptanceDecision ?? "pending");
-      setAcceptancePriority(loadedState?.acceptancePriority ?? "medium");
-      setDecisionOwner(loadedState?.decisionOwner ?? "");
-      setDecisionDate(loadedState?.decisionDate ?? "");
+      setReviewDecision(loadedState?.reviewDecision ?? "pending");
+      setReviewedBy(loadedState?.reviewedBy ?? "");
+      setReviewDate(loadedState?.reviewDate ?? "");
+      setReviewNotes(loadedState?.reviewNotes ?? "");
       setIsLoading(false);
     }
 
-    loadAcceptanceFinding();
+    loadReview();
   }, [projectId]);
 
   useEffect(() => {
     fetch(`/api/projects/${projectId}/workflow`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ currentStep: "acceptance" })
+      body: JSON.stringify({ currentStep: "review" })
     })
       .then((response) => response.json())
       .then((data: { workflowState: WorkflowState }) => {
@@ -102,7 +98,7 @@ export default function AcceptanceFindingWorkspace({ projectId }: AcceptanceFind
       });
   }, [projectId]);
 
-  async function saveAcceptanceFinding(event?: FormEvent<HTMLFormElement>) {
+  async function saveReview(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     setIsSaving(true);
     setSavedMessage("");
@@ -111,13 +107,11 @@ export default function AcceptanceFindingWorkspace({ projectId }: AcceptanceFind
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        currentStep: "acceptance",
-        acceptanceFindings,
-        alignmentNotes,
-        acceptanceDecision,
-        acceptancePriority,
-        decisionOwner,
-        decisionDate
+        currentStep: "review",
+        reviewDecision,
+        reviewedBy,
+        reviewDate,
+        reviewNotes
       })
     });
 
@@ -132,27 +126,6 @@ export default function AcceptanceFindingWorkspace({ projectId }: AcceptanceFind
     setWorkflowState(data.workflowState);
     setSavedMessage("저장되었습니다.");
     return data.workflowState;
-  }
-
-  async function goReview() {
-    const savedState = await saveAcceptanceFinding();
-
-    if (!savedState) {
-      return;
-    }
-
-    const response = await fetch(`/api/projects/${projectId}/workflow`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ currentStep: "review" })
-    });
-
-    if (!response.ok) {
-      setSavedMessage("최종 검토 단계로 이동하지 못했습니다.");
-      return;
-    }
-
-    window.location.href = `/projects/${projectId}/review`;
   }
 
   const actionItems = parseActionItems(workflowState?.actionItems);
@@ -170,7 +143,7 @@ export default function AcceptanceFindingWorkspace({ projectId }: AcceptanceFind
 
         <nav className="mt-8 grid gap-2">
           {workflowSteps.map((step, index) => {
-            const isCurrent = step.key === "acceptance" || workflowState?.currentStep === step.key;
+            const isCurrent = step.key === "review" || workflowState?.currentStep === step.key;
             const content = (
               <>
                 <span className="mr-2 text-xs text-[var(--muted)]">{index + 1}</span>
@@ -208,10 +181,10 @@ export default function AcceptanceFindingWorkspace({ projectId }: AcceptanceFind
 
       <section className="p-6">
         <div className="border-b border-[var(--line)] pb-4">
-          <p className="text-sm font-medium text-[var(--muted)]">Acceptance Finding</p>
-          <h2 className="mt-1 text-2xl font-semibold">수용성 확인</h2>
+          <p className="text-sm font-medium text-[var(--muted)]">Final Review</p>
+          <h2 className="mt-1 text-2xl font-semibold">최종 검토</h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            전체 워크플로우를 최종 검토하고, 실행 전 사람이 직접 정렬, 우선순위, 결정과 합의를 기록합니다.
+            전체 워크플로우 산출물을 읽기 전용으로 확인하고 최종 검토 결정을 기록합니다.
           </p>
         </div>
 
@@ -219,7 +192,7 @@ export default function AcceptanceFindingWorkspace({ projectId }: AcceptanceFind
           <div className="border-b border-[var(--line)] pb-3">
             <h3 className="text-lg font-semibold">전체 워크플로우 요약</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              이전 단계의 입력은 이 화면에서 읽기 전용으로만 검토합니다.
+              모든 이전 단계의 결과를 최종 검토용으로 모아 보여줍니다.
             </p>
           </div>
 
@@ -302,100 +275,89 @@ export default function AcceptanceFindingWorkspace({ projectId }: AcceptanceFind
                 )}
               </div>
             </section>
+
+            <section className="rounded-md border border-[var(--line)] p-4 lg:col-span-2">
+              <h4 className="font-semibold">수용성 확인</h4>
+              <div className="mt-2 grid gap-1 text-sm leading-6 text-[var(--muted)]">
+                <p>결정: {displayValue(workflowState?.acceptanceDecision)}</p>
+                <p>우선순위: {displayValue(workflowState?.acceptancePriority)}</p>
+                <p>결정 책임자: {displayValue(workflowState?.decisionOwner)}</p>
+                <p>결정일: {displayValue(workflowState?.decisionDate)}</p>
+                <p className="mt-2 max-h-28 overflow-auto whitespace-pre-wrap">
+                  수용성 발견: {displayValue(workflowState?.acceptanceFindings)}
+                </p>
+                <p className="max-h-28 overflow-auto whitespace-pre-wrap">
+                  합의 노트: {displayValue(workflowState?.alignmentNotes)}
+                </p>
+              </div>
+            </section>
           </div>
         </section>
 
-        <form className="mt-6 grid gap-5" onSubmit={saveAcceptanceFinding}>
+        <form className="mt-6 grid gap-5" onSubmit={saveReview}>
           <div className="border-b border-[var(--line)] pb-3">
-            <h3 className="text-lg font-semibold">수용성 확인 입력</h3>
+            <h3 className="text-lg font-semibold">최종 검토 입력</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              이 영역만 편집할 수 있으며, 위 요약은 원본 단계에서 수정합니다.
+              최종 판단, 검토자, 검토일, 검토 메모만 이 단계에서 저장합니다.
             </p>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-2">
-            <label className="block text-sm font-medium" htmlFor="acceptanceFindings">
-              수용성 발견
-              <textarea
-                className="mt-2 min-h-56 w-full resize-y rounded-md border border-[var(--line)] px-4 py-3 text-sm leading-6 outline-none focus:border-[#3a6ea5]"
-                id="acceptanceFindings"
-                onChange={(event) => setAcceptanceFindings(event.target.value)}
-                placeholder="검토 과정에서 발견한 우려, 합의점, 미해결 쟁점을 기록하세요."
-                value={acceptanceFindings}
-              />
-            </label>
-
-            <label className="block text-sm font-medium" htmlFor="alignmentNotes">
-              합의 노트
-              <textarea
-                className="mt-2 min-h-56 w-full resize-y rounded-md border border-[var(--line)] px-4 py-3 text-sm leading-6 outline-none focus:border-[#3a6ea5]"
-                id="alignmentNotes"
-                onChange={(event) => setAlignmentNotes(event.target.value)}
-                placeholder="이해관계자 정렬, 우선순위 합의, 조건부 동의 내용을 기록하세요."
-                value={alignmentNotes}
-              />
-            </label>
-          </div>
-
-          <div className="grid gap-4 rounded-md border border-[var(--line)] bg-[#fbfcfd] p-4 lg:grid-cols-4">
-            <label className="block text-sm font-medium" htmlFor="acceptanceDecision">
-              결정
+          <div className="grid gap-4 rounded-md border border-[var(--line)] bg-[#fbfcfd] p-4 lg:grid-cols-3">
+            <label className="block text-sm font-medium" htmlFor="reviewDecision">
+              최종 결정
               <select
                 className="mt-2 w-full rounded-md border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none focus:border-[#3a6ea5]"
-                id="acceptanceDecision"
-                onChange={(event) => setAcceptanceDecision(event.target.value)}
-                value={acceptanceDecision}
+                id="reviewDecision"
+                onChange={(event) => setReviewDecision(event.target.value)}
+                value={reviewDecision}
               >
                 <option value="pending">대기</option>
-                <option value="accepted">수용</option>
-                <option value="revise">수정 필요</option>
-                <option value="rejected">거부</option>
+                <option value="approved">승인</option>
+                <option value="needs_revision">수정 필요</option>
+                <option value="closed">종료</option>
               </select>
             </label>
 
-            <label className="block text-sm font-medium" htmlFor="acceptancePriority">
-              우선순위
-              <select
-                className="mt-2 w-full rounded-md border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none focus:border-[#3a6ea5]"
-                id="acceptancePriority"
-                onChange={(event) => setAcceptancePriority(event.target.value)}
-                value={acceptancePriority}
-              >
-                <option value="high">높음</option>
-                <option value="medium">보통</option>
-                <option value="low">낮음</option>
-              </select>
-            </label>
-
-            <label className="block text-sm font-medium" htmlFor="decisionOwner">
-              결정 책임자
+            <label className="block text-sm font-medium" htmlFor="reviewedBy">
+              검토자
               <input
                 className="mt-2 w-full rounded-md border border-[var(--line)] px-3 py-2 text-sm outline-none focus:border-[#3a6ea5]"
-                id="decisionOwner"
-                onChange={(event) => setDecisionOwner(event.target.value)}
-                placeholder="개인 또는 그룹"
-                value={decisionOwner}
+                id="reviewedBy"
+                onChange={(event) => setReviewedBy(event.target.value)}
+                placeholder="검토자 이름 또는 그룹"
+                value={reviewedBy}
               />
             </label>
 
-            <label className="block text-sm font-medium" htmlFor="decisionDate">
-              결정일
+            <label className="block text-sm font-medium" htmlFor="reviewDate">
+              검토일
               <input
                 className="mt-2 w-full rounded-md border border-[var(--line)] px-3 py-2 text-sm outline-none focus:border-[#3a6ea5]"
-                id="decisionDate"
-                onChange={(event) => setDecisionDate(event.target.value)}
+                id="reviewDate"
+                onChange={(event) => setReviewDate(event.target.value)}
                 type="date"
-                value={decisionDate}
+                value={reviewDate}
               />
             </label>
           </div>
+
+          <label className="block text-sm font-medium" htmlFor="reviewNotes">
+            검토 메모
+            <textarea
+              className="mt-2 min-h-56 w-full resize-y rounded-md border border-[var(--line)] px-4 py-3 text-sm leading-6 outline-none focus:border-[#3a6ea5]"
+              id="reviewNotes"
+              onChange={(event) => setReviewNotes(event.target.value)}
+              placeholder="최종 검토 의견, 수정 요청, 승인 조건, 종료 사유를 기록하세요."
+              value={reviewNotes}
+            />
+          </label>
 
           <div className="flex items-center gap-3">
             <button
               className="rounded-md bg-[#1f2328] px-4 py-2 text-sm font-medium text-white hover:bg-[#39414d] disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isSaving}
             >
-              {isSaving ? "저장 중..." : "수용성 확인 저장"}
+              {isSaving ? "저장 중..." : "최종 검토 저장"}
             </button>
             <Link
               className="rounded-md border border-[var(--line)] px-4 py-2 text-sm font-medium hover:border-[#3a6ea5]"
@@ -403,29 +365,19 @@ export default function AcceptanceFindingWorkspace({ projectId }: AcceptanceFind
             >
               워크스페이스로 돌아가기
             </Link>
-            <button
-              className="rounded-md border border-[var(--line)] px-4 py-2 text-sm font-medium hover:border-[#3a6ea5] disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isSaving}
-              onClick={goReview}
-              type="button"
-            >
-              최종 검토로 이동
-            </button>
             {savedMessage ? <span className="text-sm text-[#2f6f4e]">{savedMessage}</span> : null}
           </div>
         </form>
       </section>
 
       <aside className="border-l border-[var(--line)] bg-[#fbfcfd] p-5">
-        <p className="text-sm font-medium text-[var(--muted)]">수용성 상태</p>
+        <p className="text-sm font-medium text-[var(--muted)]">최종 검토 상태</p>
         <div className="mt-4 rounded-md border border-[var(--line)] bg-white p-4 text-sm leading-6 text-[var(--muted)]">
-          <p>현재 단계: {workflowState?.currentStep ?? "acceptance"}</p>
-          <p className="mt-2">결정: {acceptanceDecision}</p>
-          <p>우선순위: {acceptancePriority}</p>
-          <p>결정 책임자: {decisionOwner || "미정"}</p>
-          <p>결정일: {decisionDate || "미정"}</p>
-          <p className="mt-2">수용성 발견: {workflowState?.acceptanceFindings ? "저장됨" : "비어 있음"}</p>
-          <p>합의 노트: {workflowState?.alignmentNotes ? "저장됨" : "비어 있음"}</p>
+          <p>현재 단계: {workflowState?.currentStep ?? "review"}</p>
+          <p className="mt-2">최종 결정: {reviewDecision}</p>
+          <p>검토자: {reviewedBy || "미정"}</p>
+          <p>검토일: {reviewDate || "미정"}</p>
+          <p className="mt-2">검토 메모: {workflowState?.reviewNotes ? "저장됨" : "비어 있음"}</p>
         </div>
       </aside>
     </main>

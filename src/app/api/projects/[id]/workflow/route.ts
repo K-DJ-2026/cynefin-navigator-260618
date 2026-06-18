@@ -76,6 +76,10 @@ export async function PATCH(request: Request, context: WorkflowRouteContext) {
     alignmentNotes?: string;
     decisionOwner?: string;
     decisionDate?: string;
+    reviewNotes?: string;
+    reviewDecision?: string;
+    reviewedBy?: string;
+    reviewDate?: string;
   };
 
   if (body.currentStep && !validSteps.has(body.currentStep)) {
@@ -120,7 +124,11 @@ export async function PATCH(request: Request, context: WorkflowRouteContext) {
         typeof body.acceptancePriority === "string" ? body.acceptancePriority.trim() || null : undefined,
       alignmentNotes: typeof body.alignmentNotes === "string" ? body.alignmentNotes.trim() || null : undefined,
       decisionOwner: typeof body.decisionOwner === "string" ? body.decisionOwner.trim() || null : undefined,
-      decisionDate: typeof body.decisionDate === "string" ? body.decisionDate.trim() || null : undefined
+      decisionDate: typeof body.decisionDate === "string" ? body.decisionDate.trim() || null : undefined,
+      reviewNotes: typeof body.reviewNotes === "string" ? body.reviewNotes.trim() || null : undefined,
+      reviewDecision: typeof body.reviewDecision === "string" ? body.reviewDecision.trim() || null : undefined,
+      reviewedBy: typeof body.reviewedBy === "string" ? body.reviewedBy.trim() || null : undefined,
+      reviewDate: typeof body.reviewDate === "string" ? body.reviewDate.trim() || null : undefined
     }
   });
 
